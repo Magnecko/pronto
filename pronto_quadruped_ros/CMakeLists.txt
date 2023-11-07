@@ -21,6 +21,7 @@ find_package(pronto_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(magnecko_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
@@ -35,6 +36,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   visualization_msgs
   tf2_eigen
   tf2_ros
+  magnecko_msgs
 )
 
 include_directories(include)

@@ -43,7 +43,7 @@ namespace pronto {
 namespace quadruped {
 
 static const int _LEGS_COUNT = 4;
-enum LegID{LF=0, RF, LH, RH};
+enum LegID{LF=0, LH, RF, RH};
 enum LegJoints{HAA=0, HFE=1, KFE=2};
 
 

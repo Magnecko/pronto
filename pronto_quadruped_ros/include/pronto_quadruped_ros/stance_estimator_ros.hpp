@@ -24,6 +24,7 @@
 #pragma once
 
 #include <pronto_quadruped/StanceEstimator.hpp>
+#include "magnecko_msgs/msg/leg_state.hpp"
 #include <rclcpp/rclcpp.hpp>
 
 namespace pronto {
@@ -35,6 +36,21 @@ public:
                        FeetContactForces& feet_forces);
 private:
     std::shared_ptr<rclcpp::Node> node_;
+    rclcpp::Subscription<magnecko_msgs::msg::LegState>::SharedPtr legStateSubscription_;
+
+    size_t legIdMap(const LegID& leg){
+        switch (leg)
+        {
+        case pronto::quadruped::LF:
+            return 0;
+        case pronto::quadruped::LH:
+            return 3;
+        case pronto::quadruped::RF:
+            return 1;
+        case pronto::quadruped::RH:
+            return 2;
+        }
+    }
 };
 }  // namespace quadruped
 }  // namespace pronto

@@ -83,7 +83,7 @@ struct GRFShortStat {
 class StanceEstimator : public StanceEstimatorBase {
     // typedef to remove ugly and verbose traited templated code
 public:
-    enum class Mode {THRESHOLD = 0, HYSTERESIS, REGRESSION};
+    enum class Mode {THRESHOLD = 0, HYSTERESIS, REGRESSION, MODE_SCHEDULE};
 
 public:
     StanceEstimator(FeetContactForces& feet_contact_forces,
@@ -165,6 +165,10 @@ public:
                    const double& hysteresis_high = 150,
                    const uint64_t &hysteresis_delay_low = 250,
                    const uint64_t &hysteresis_delay_high = 250);
+
+    void setMagnetState(std::vector<size_t> state){
+        magnetStates_ = state;
+    }
 private:
     LegVectorMap grForce_W;
     LegVectorMap grForce_des;
@@ -183,6 +187,8 @@ private:
 
     GRFStat stat;
     GRFShortStat gss[4];
+
+    std::vector<size_t> magnetStates_ = {0, 0, 0, 0};
 
 protected:
     FeetContactForces& feet_contact_forces_;

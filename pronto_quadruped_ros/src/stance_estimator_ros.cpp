@@ -48,7 +48,7 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
     if(!node_->get_parameter(legodo_prefix + "stance_mode", stance_mode)){
         RCLCPP_WARN(node_->get_logger(), "Could not read the stance mode from param server. Using threshold with default 50 N.");
         setMode(Mode::THRESHOLD);
-    } else if(stance_mode < 3){
+    } else if(stance_mode < 4){
       setMode(static_cast<StanceEstimator::Mode>(stance_mode));
     } else {
       RCLCPP_WARN(node_->get_logger(), "Invalid stance mode from param server. Using threshold with default 50 N.");
@@ -85,6 +85,16 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
 
     }
     setParams(beta, stance_threshold, hysteresis_low, hysteresis_high, stance_hysteresis_delay_low, stance_hysteresis_delay_high);
+
+    auto stanceCallback = [this](magnecko_msgs::msg::LegState::SharedPtr msg) {
+      std::vector<size_t> state = {0,0,0,0};
+      for (size_t i = 0; i < 4; ++i){
+        state[i] = msg->leg_states[this->legIdMap(LegID(i))];
+      }
+      this->setMagnetState(state);
+    };
+
+    legStateSubscription_ = node->create_subscription<magnecko_msgs::msg::LegState>("/leg_state_topic", 10, stanceCallback);
 }
 
 }  // namespace quadruped

@@ -13,6 +13,11 @@ bool jointStateFromROS(const sensor_msgs::msg::JointState& msg,
                        JointState& qdd,
                        JointState& tau)
 {
+    const std::vector<std::string> jointOrder{"first_arm_yaw", "first_arm_pitch", "first_knee_joint",
+                                              "fourth_arm_yaw", "fourth_arm_pitch", "fourth_knee_joint",
+                                              "second_arm_yaw", "second_arm_pitch", "second_knee_joint", 
+                                              "third_arm_yaw", "third_arm_pitch", "third_knee_joint"};
+
     // if the size of the joint state message does not match our own,
     // we silently return an invalid update
     if (static_cast<int>(static_cast<const sensor_msgs::msg::JointState&>(msg).position.size()) != q.size() ||
@@ -26,10 +31,16 @@ bool jointStateFromROS(const sensor_msgs::msg::JointState& msg,
     }
     // store message time in microseconds
     utime = msg.header.stamp.sec * 1e6 + msg.header.stamp.nanosec / 1000;
-    for(int i=0; i<12; i++){
-      q(i) = msg.position[i];
-      qd(i) = msg.velocity[i];
-      tau(i) = msg.effort[i];
+    for (size_t i = 0; i < 12; i++){
+      auto it = std::find(jointOrder.begin(), jointOrder.end(), msg.name[i]);
+      if (it == jointOrder.end()){
+        RCLCPP_WARN_STREAM(LOGGER, "Joint name not matching expected joint name!");
+        return false;
+      }
+      size_t orderedIdx = it - jointOrder.begin();
+      q(orderedIdx) = msg.position[i];
+      qd(orderedIdx) = msg.velocity[i];
+      tau(orderedIdx) = msg.effort[i];
     }
     //q = Eigen::Map<const JointState>(msg.position.data());
     //qd = Eigen::Map<const JointState>(msg.velocity.data());

@@ -212,6 +212,10 @@ bool StanceEstimator::getStance(LegBoolMap &stance,
             stance_probability[leg_id] = 1.0 - 1.0 / (1.0 + exp(-(beta_[0 + leg_id * 2] + grf_[leg_id](Z) * beta_[1 + leg_id * 2])));
             stance[leg_id] = (stance_probability[leg_id] > 0.5 ? true : false);
             break;
+        case Mode::MODE_SCHEDULE:
+            stance[leg_id] = magnetStates_[leg_id];
+            stance_probability[leg_id] = stance[leg_id];
+            break;
         }
     }
     return true;
