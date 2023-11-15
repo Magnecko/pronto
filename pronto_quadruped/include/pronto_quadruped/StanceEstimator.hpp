@@ -188,7 +188,7 @@ private:
     GRFStat stat;
     GRFShortStat gss[4];
 
-    std::vector<size_t> magnetStates_ = {0, 0, 0, 0};
+    std::vector<size_t> magnetStates_ = {1, 1, 1, 1};
 
 protected:
     FeetContactForces& feet_contact_forces_;
