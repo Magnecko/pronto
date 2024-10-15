@@ -48,7 +48,7 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
     if(!node_->get_parameter(legodo_prefix + "stance_mode", stance_mode)){
         RCLCPP_WARN(node_->get_logger(), "Could not read the stance mode from param server. Using threshold with default 50 N.");
         setMode(Mode::THRESHOLD);
-    } else if(stance_mode < 4){
+    } else if(stance_mode < 5){
       setMode(static_cast<StanceEstimator::Mode>(stance_mode));
     } else {
       RCLCPP_WARN(node_->get_logger(), "Invalid stance mode from param server. Using threshold with default 50 N.");
@@ -94,7 +94,43 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
       this->setMagnetState(state);
     };
 
+    auto contactFirstFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
+      uint8_t state = 0;
+      if (!msg.states.empty()){
+          state = 1;
+      }
+      this->setContactSensorState(state, 0);
+    };
+
+    auto contactSecondFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
+      uint8_t state = 0;
+      if (!msg.states.empty()){
+          state = 1;
+      }
+      this->setContactSensorState(state, 1);
+    };
+
+    auto contactThirdFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
+      uint8_t state = 0;
+      if (!msg.states.empty()){
+          state = 1;
+      }
+      this->setContactSensorState(state, 2);
+    };
+
+    auto contactFourthFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
+      uint8_t state = 0;
+      if (!msg.states.empty()){
+          state = 1;
+      }
+      this->setContactSensorState(state, 3);
+    };
+
     legStateSubscription_ = node->create_subscription<magnecko_msgs::msg::LegState>("/leg_state_topic", 10, stanceCallback);
+    contactSensorFirstFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/first_foot", 10, contactFirstFootCallback);
+    contactSensorSecondFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/second_foot", 10, contactSecondFootCallback);
+    contactSensorThirdFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/third_foot", 10, contactThirdFootCallback);
+    contactSensorFourthFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/fourth_foot", 10, contactFourthFootCallback);
 }
 
 }  // namespace quadruped

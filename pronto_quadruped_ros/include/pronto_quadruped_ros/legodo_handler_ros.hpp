@@ -27,6 +27,7 @@
 #include <pronto_core/sensing_module.hpp>
 
 #include <pronto_quadruped/StanceEstimatorBase.hpp>
+#include <pronto_quadruped_ros/stance_estimator_ros.hpp>
 #include <pronto_quadruped/LegOdometerBase.hpp>
 #include <pronto_quadruped/DataLogger.hpp>
 
@@ -38,6 +39,7 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/accel_stamped.hpp>
+#include <magnecko_msgs/msg/contact_stance.hpp>
 
 
 namespace pronto {
@@ -122,7 +124,7 @@ class LegodoHandlerROS : public pronto::SensingModule<sensor_msgs::msg::JointSta
 {
 public:
     LegodoHandlerROS(const rclcpp::Node::SharedPtr& node,
-                     StanceEstimatorBase &stance_est,
+                     StanceEstimatorROS &stance_est,
                      LegOdometerBase &legodo);
     virtual ~LegodoHandlerROS() = default;
 
@@ -134,6 +136,9 @@ public:
                             const RBIM &default_cov,
                             RBIS &init_state,
                             RBIM &init_cov) override;
+protected:
+    magnecko_msgs::msg::ContactStance stance_contact_msg_;
+    rclcpp::Publisher<magnecko_msgs::msg::ContactStance>::SharedPtr stance_contact_pub_;
 };
 
 class LegodoHandlerWithAccelerationROS : public pronto::SensingModule<pronto_msgs::msg::JointStateWithAcceleration>,

@@ -304,10 +304,13 @@ LegodoHandlerBase::Update* LegodoHandlerBase::computeVelocity(){
 }
 
 LegodoHandlerROS::LegodoHandlerROS(const rclcpp::Node::SharedPtr& node,
-                                   StanceEstimatorBase& stance_est,
+                                   StanceEstimatorROS& stance_est,
                                    LegOdometerBase& legodo) :
     LegodoHandlerBase(node, stance_est, legodo)
 {
+  if (stance_est.getMode() == StanceEstimator::Mode::GAZEBO) {
+    stance_contact_pub_ = node->create_publisher<magnecko_msgs::msg::ContactStance>("/contact_sensors/stance", 10);
+  }
 }
 
 LegodoHandlerROS::Update* LegodoHandlerROS::processMessage(const sensor_msgs::msg::JointState *msg,
@@ -328,6 +331,12 @@ LegodoHandlerROS::Update* LegodoHandlerROS::processMessage(const sensor_msgs::ms
                                      qdd_, xd_, xdd_, omega_, omegad_);
 
     stance_estimator_.getStance(stance_, stance_prob_);
+
+    stance_contact_msg_.lf = stance_[LegID::LF];
+    stance_contact_msg_.rf = stance_[LegID::RF];
+    stance_contact_msg_.lh = stance_[LegID::LH];
+    stance_contact_msg_.rh = stance_[LegID::RH];
+    stance_contact_pub_->publish(stance_contact_msg_);
 
     return computeVelocity();
 }
