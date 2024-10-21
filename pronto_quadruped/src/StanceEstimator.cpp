@@ -230,8 +230,7 @@ void StanceEstimator::setMode(const Mode &mode) {
 }
 
 StanceEstimator::Mode StanceEstimator::getMode() {
-    StanceEstimator::Mode mode = mode_;
-    return mode;
+    return mode_;
 }
 
 void StanceEstimator::getNormalizedGRF(Eigen::Vector4d &normgrf) {

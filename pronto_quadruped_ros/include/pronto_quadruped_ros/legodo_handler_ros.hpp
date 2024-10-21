@@ -139,6 +139,8 @@ public:
 protected:
     magnecko_msgs::msg::ContactStance stance_contact_msg_;
     rclcpp::Publisher<magnecko_msgs::msg::ContactStance>::SharedPtr stance_contact_pub_;
+    StanceEstimatorROS& stance_estimator_ros_;
+    LegBoolMap stance_ground_truth_;
 };
 
 class LegodoHandlerWithAccelerationROS : public pronto::SensingModule<pronto_msgs::msg::JointStateWithAcceleration>,

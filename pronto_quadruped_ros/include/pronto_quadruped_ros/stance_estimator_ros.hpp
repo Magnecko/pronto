@@ -24,6 +24,7 @@
 #pragma once
 
 #include <pronto_quadruped/StanceEstimator.hpp>
+#include <pronto_quadruped_commons/leg_bool_map.h>
 #include "magnecko_msgs/msg/leg_state.hpp"
 #include "gazebo_msgs/msg/contacts_state.hpp"
 #include <rclcpp/rclcpp.hpp>
@@ -35,10 +36,19 @@ class StanceEstimatorROS : public StanceEstimator {
 public:
     StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
                        FeetContactForces& feet_forces);
+
+    void getStanceGroundTruth(LegBoolMap &stance) {
+      for(int leg_id  = 0; leg_id < _LEGS_COUNT; leg_id++) {
+        // same as GAZEBO mode
+        stance[leg_id] = this->getContactSensorState(leg_id);
+      }
+    };
+
 private:
     std::shared_ptr<rclcpp::Node> node_;
     rclcpp::Subscription<magnecko_msgs::msg::LegState>::SharedPtr legStateSubscription_;
 
+    bool stance_output_simulation_ground_truth_;
     rclcpp::Subscription<gazebo_msgs::msg::ContactsState>::SharedPtr contactSensorFirstFootSubscription_;
     rclcpp::Subscription<gazebo_msgs::msg::ContactsState>::SharedPtr contactSensorSecondFootSubscription_;
     rclcpp::Subscription<gazebo_msgs::msg::ContactsState>::SharedPtr contactSensorThirdFootSubscription_;

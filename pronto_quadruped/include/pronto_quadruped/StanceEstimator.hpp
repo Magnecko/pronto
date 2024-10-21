@@ -170,11 +170,14 @@ public:
 
     void setMagnetState(std::vector<size_t> state){
         magnetStates_ = state;
-    }
+    };
 
     void setContactSensorState(uint8_t state, uint8_t index){
         contactSensorStates_[index] = state;
-    }
+    };
+    uint8_t getContactSensorState(uint8_t index){
+        return contactSensorStates_[index];
+    };
 private:
     LegVectorMap grForce_W;
     LegVectorMap grForce_des;

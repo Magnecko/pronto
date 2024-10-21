@@ -44,6 +44,46 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
     double hysteresis_high = 50;
     double stance_threshold = 50;
 
+    auto stanceCallback = [this](magnecko_msgs::msg::LegState::SharedPtr msg) {
+      std::vector<size_t> state = {0,0,0,0};
+      for (size_t i = 0; i < 4; ++i){
+        state[i] = msg->leg_states[this->legIdMap(LegID(i))];
+      }
+      this->setMagnetState(state);
+    };
+
+    auto contactFirstFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
+      uint8_t state = 0;
+      if (!msg.states.empty()){
+          state = 1;
+      }
+      this->setContactSensorState(state, 0);
+    };
+
+    auto contactSecondFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
+      uint8_t state = 0;
+      if (!msg.states.empty()){
+          state = 1;
+      }
+      this->setContactSensorState(state, 2);
+    };
+
+    auto contactThirdFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
+      uint8_t state = 0;
+      if (!msg.states.empty()){
+          state = 1;
+      }
+      this->setContactSensorState(state, 3);
+    };
+
+    auto contactFourthFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
+      uint8_t state = 0;
+      if (!msg.states.empty()){
+          state = 1;
+      }
+      this->setContactSensorState(state, 1);
+    };
+
     int stance_mode;
     if(!node_->get_parameter(legodo_prefix + "stance_mode", stance_mode)){
         RCLCPP_WARN(node_->get_logger(), "Could not read the stance mode from param server. Using threshold with default 50 N.");
@@ -82,55 +122,27 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
         RCLCPP_WARN(node_->get_logger(), "Could not read the stance_regression_beta from param server. Setting mode to THRESHOLD with default value of 50 N.");
         setMode(Mode::THRESHOLD);
       }
-
+      break;
+    case Mode::MODE_SCHEDULE:
+      legStateSubscription_ = node->create_subscription<magnecko_msgs::msg::LegState>("/leg_state_topic", 10, stanceCallback);
+      break;
     }
-    setParams(beta, stance_threshold, hysteresis_low, hysteresis_high, stance_hysteresis_delay_low, stance_hysteresis_delay_high);
 
-    auto stanceCallback = [this](magnecko_msgs::msg::LegState::SharedPtr msg) {
-      std::vector<size_t> state = {0,0,0,0};
-      for (size_t i = 0; i < 4; ++i){
-        state[i] = msg->leg_states[this->legIdMap(LegID(i))];
-      }
-      this->setMagnetState(state);
-    };
+    if(!node_->get_parameter(legodo_prefix + "stance_output_simulation_ground_truth", stance_output_simulation_ground_truth_)){
+        RCLCPP_WARN(node_->get_logger(), "Could not read the stance_output_simulation_ground_truth from param server. Will display NO Ground truth contact stance.");
+        stance_output_simulation_ground_truth_ = false;
+    }
+    if (stance_output_simulation_ground_truth_ || mode_ == Mode::GAZEBO){
+      contactSensorFirstFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/first_foot", 10, contactFirstFootCallback);
+      contactSensorSecondFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/second_foot", 10, contactSecondFootCallback);
+      contactSensorThirdFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/third_foot", 10, contactThirdFootCallback);
+      contactSensorFourthFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/fourth_foot", 10, contactFourthFootCallback);
+      RCLCPP_INFO(node_->get_logger(), "Publishing contact stance ground truth from simulation to topic /contact_sensors/stance");
+    } else{
+      RCLCPP_WARN(node_->get_logger(), "Topic /contact_sensors/stance contains the same data as /stance i.e. not the ground truth from simulation");
+    }
 
-    auto contactFirstFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
-      uint8_t state = 0;
-      if (!msg.states.empty()){
-          state = 1;
-      }
-      this->setContactSensorState(state, 0);
-    };
-
-    auto contactSecondFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
-      uint8_t state = 0;
-      if (!msg.states.empty()){
-          state = 1;
-      }
-      this->setContactSensorState(state, 1);
-    };
-
-    auto contactThirdFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
-      uint8_t state = 0;
-      if (!msg.states.empty()){
-          state = 1;
-      }
-      this->setContactSensorState(state, 2);
-    };
-
-    auto contactFourthFootCallback = [this](gazebo_msgs::msg::ContactsState msg) {
-      uint8_t state = 0;
-      if (!msg.states.empty()){
-          state = 1;
-      }
-      this->setContactSensorState(state, 3);
-    };
-
-    legStateSubscription_ = node->create_subscription<magnecko_msgs::msg::LegState>("/leg_state_topic", 10, stanceCallback);
-    contactSensorFirstFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/first_foot", 10, contactFirstFootCallback);
-    contactSensorSecondFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/second_foot", 10, contactSecondFootCallback);
-    contactSensorThirdFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/third_foot", 10, contactThirdFootCallback);
-    contactSensorFourthFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/fourth_foot", 10, contactFourthFootCallback);
+    setParams(beta, stance_threshold, hysteresis_low, hysteresis_high, stance_hysteresis_delay_low, stance_hysteresis_delay_high); 
 }
 
 }  // namespace quadruped
