@@ -171,6 +171,9 @@ public:
     void setMagnetState(std::vector<size_t> state){
         magnetStates_ = state;
     };
+    uint8_t getMagnetState(uint8_t index){
+        return magnetStates_[index];
+    };
 
     void setContactSensorState(uint8_t state, uint8_t index){
         contactSensorStates_[index] = state;
