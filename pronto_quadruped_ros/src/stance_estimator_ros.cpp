@@ -56,6 +56,8 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
     }
 
     auto stanceCallback = [this](magnecko_msgs::msg::LegState::SharedPtr msg) {
+      /* set the MagnetState of pronto and adjust it's timing */
+
       std::vector<size_t> state = {0,0,0,0};
 
       for (int i = 0; i < 4; ++i){
@@ -63,18 +65,17 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
         //   legIdMap(): Pronto -> urdf convention
         size_t state_i = msg->leg_states[this->legIdMap(LegID(i))];
 
-        // TODO: use_sim_time to determin hardware or simulation
         // Important: only delayContactDetection() can be used when running on hardware
         switch (stance_adjust_timing_)
         {
         case 1:
-          delayContactDetection(this->stance_delay_, this->stance_delay_counter_, i, state_i, this->getMagnetState(i));
+          delayContactDetection(i, state_i);
           break;
         case 2:
-          // earlyContactDetection(this->leg_swing_time_shortened_, this->stance_delay_counter_, i, state_i, this->getMagnetState(i), this->falling_edge_contact_);
+          earlyContactDetection(i, state_i);
           break;
         case 3:
-          // earlyContactDetectionP3d(this->p3dContactDetectionThresholdZ_, state_i, i);
+          earlyContactDetectionP3d(i, state_i);
           break;
         
         default:
@@ -222,16 +223,19 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
     setParams(beta, stance_threshold, hysteresis_low, hysteresis_high, stance_hysteresis_delay_low, stance_hysteresis_delay_high); 
 }
 
-void StanceEstimatorROS::StanceEstimatorROS::delayContactDetection(const double &delay, std::vector<int> &counter, int &id, size_t &state, uint8_t last_state_bak) {
-  /* change variable state only to introduce a delay */
+void StanceEstimatorROS::StanceEstimatorROS::delayContactDetection(int &id, size_t &state) {
+  /* 
+    Delay the contact detection by a time constant.
+  */
 
   uint8_t last_state = this->getMagnetState(id);
-  // check for rising edge (0 -> 1) a.k.a. new contact detected
+  
+  // check for rising edge (0 -> 1) i.e. new contact detected
   if (last_state == 0 && state > 0){
     ++this->stance_delay_counter_[id];
 
     // check if delay has passed
-    if (this->stance_delay_counter_[id] >= this->stance_delay_sec_){
+    if (this->stance_delay_counter_[id] >= this->stance_delay_sec_ / this->timestep_dt_){
       state = 1;
       this->stance_delay_counter_[id] = 0;
       RCLCPP_INFO(node_->get_logger(), "delay foot %d by %f seconds", id, this->stance_delay_sec_);
@@ -241,28 +245,32 @@ void StanceEstimatorROS::StanceEstimatorROS::delayContactDetection(const double 
   }
 };
 
-void StanceEstimatorROS::StanceEstimatorROS::earlyContactDetection(const double &delay, std::vector<int>& counter, int &id, size_t& state, uint8_t last_state, std::vector<bool> &falling_edge){
-  /* change variable state to contact detected after leg_swing_time_shortened_ samples after contact has been lost */
+void StanceEstimatorROS::StanceEstimatorROS::earlyContactDetection(int &id, size_t& state){
+  /* 
+    Early contact detection at the end of the planned leg swing phase - a time constant.
+    Change variable state to contact detected after leg_swing_time_shortened_ samples after contact has been lost.
+  */
 
   double safety_factor = 1.0; // ensure detection of next falling edge after this step has been completed
+  uint8_t last_state = this->getMagnetState(id);
 
   // check for falling edge (1 -> 0) a.k.a. contact lost
   if (last_state > 0 && state == 0){
-    falling_edge[id] = true;   
+    this->falling_edge_contact_[id] = true;   
   } 
   
   // check if contact should have been established
-  if (counter[id] > (int)(this->leg_swing_time_sec_ / this->timestep_dt_ * safety_factor)) {
-    counter[id] = 0;
-    falling_edge[id] = false;
+  if (this->stance_delay_counter_[id] > (int)(this->leg_swing_time_sec_ / this->timestep_dt_ * safety_factor)) {
+    this->stance_delay_counter_[id] = 0;
+    this->falling_edge_contact_[id] = false;
     RCLCPP_INFO_STREAM(node_->get_logger(), "reset leg " << id << "\n");
   }
 
-  if (falling_edge[id]) { 
-    ++counter[id];
+  if (this->falling_edge_contact_[id]) { 
+    ++this->stance_delay_counter_[id];
 
     // check if delay has passed
-    if (counter[id] >= delay){  
+    if (this->stance_delay_counter_[id] >= this->leg_swing_time_shortened_){  
       state = 1;
     } else {
       state = 0;
@@ -270,8 +278,11 @@ void StanceEstimatorROS::StanceEstimatorROS::earlyContactDetection(const double 
   } 
 }
 
-void StanceEstimatorROS::StanceEstimatorROS::earlyContactDetectionP3d(double &threshold_z, size_t& state, int leg_id) {
-  // trigger contact estimation early based on position of foot above the ground
+void StanceEstimatorROS::StanceEstimatorROS::earlyContactDetectionP3d(int leg_id, size_t& state) {
+  /* 
+    Trigger contact estimation early based on position of foot above the ground. 
+    The distance from the ground is measured by the p3d plugin in gazebo.
+  */
   
   // This function must not be used when running on hardware
   if (!this->useSimulation_){
@@ -299,7 +310,7 @@ void StanceEstimatorROS::StanceEstimatorROS::earlyContactDetectionP3d(double &th
   
   float change_in_z = (*vec)[0] - (*vec)[vec->size()-1];
 
-  if ((*vec)[0] < threshold_z && change_in_z <= -1e-2){
+  if ((*vec)[0] < this->p3dContactDetectionThresholdZ_ && change_in_z <= -1e-2){
     // overwrite state to assume contact
     state = 1;    
   }
