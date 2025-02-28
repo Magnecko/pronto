@@ -53,7 +53,7 @@ private:
     std::shared_ptr<rclcpp::Node> node_;
     rclcpp::Subscription<magnecko_msgs::msg::LegState>::SharedPtr legStateSubscription_;
 
-    bool useSimulation_;
+    bool use_sim_time_;
     uint8_t stance_adjust_timing_;
 
     bool stance_output_simulation_ground_truth_;

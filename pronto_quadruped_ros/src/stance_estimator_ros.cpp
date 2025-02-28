@@ -45,14 +45,28 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
     double stance_threshold = 50;
 
     // get parameter if we run in simulation or on hardware
-    useSimulation_ = node_->get_parameter("use_sim_time").as_bool();
-    RCLCPP_INFO(node_->get_logger(), "useSimulation_: %d", useSimulation_);
+    if (!node_->get_parameter("use_sim_time", this->use_sim_time_)){
+      RCLCPP_WARN(node_->get_logger(), "Could not read use_sim_time from param server. Using default false i.e. we run on hardware.");
+    } else {
+      RCLCPP_INFO(node_->get_logger(), "using use_sim_time_: %d", this->use_sim_time_);
+    }
 
+    if (use_sim_time_) {
+      RCLCPP_WARN(node_->get_logger(), "use_sim_time_: %d. Can be adjusted in 'state_estimator.yaml'", use_sim_time_);
+    } else {
+      RCLCPP_INFO(node_->get_logger(), "use_sim_time_: %d. Can be adjusted in 'state_estimator.yaml'", use_sim_time_);
+    }
 
     if (!node_->get_parameter(legodo_prefix + "stance_adjust_timing", this->stance_adjust_timing_)){
       RCLCPP_WARN(node_->get_logger(), "Could not read stance_adjust_timing from param server. Using default 0 i.e. no adjustment.");
     } else {
       RCLCPP_INFO(node_->get_logger(), "using stance_adjust_timing: %d", this->stance_adjust_timing_);
+    }
+
+    if (!node_->get_parameter("timestep_dt", this->timestep_dt_)){
+      RCLCPP_WARN(node_->get_logger(), "Could not read timestep_dt from param server. Using default 0.0025 s.");
+    } else {
+      RCLCPP_INFO(node_->get_logger(), "using timestep_dt: %d", this->timestep_dt_);
     }
 
     auto stanceCallback = [this](magnecko_msgs::msg::LegState::SharedPtr msg) {
@@ -200,11 +214,11 @@ StanceEstimatorROS::StanceEstimatorROS(const rclcpp::Node::SharedPtr& node,
       break;
     }
 
-    if(!node_->get_parameter(legodo_prefix + "stance_output_simulation_ground_truth", stance_output_simulation_ground_truth_) || !useSimulation_){
+    if(!node_->get_parameter(legodo_prefix + "stance_output_simulation_ground_truth", stance_output_simulation_ground_truth_) || !use_sim_time_){
         RCLCPP_WARN(node_->get_logger(), "Could not read the stance_output_simulation_ground_truth from param server. Will display NO Ground truth contact stance.");
         stance_output_simulation_ground_truth_ = false;
     }
-    if ((stance_output_simulation_ground_truth_ || mode_ == Mode::GAZEBO) && useSimulation_){
+    if ((stance_output_simulation_ground_truth_ || mode_ == Mode::GAZEBO) && use_sim_time_){
       contactSensorFirstFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/first_foot", 10, contactFirstFootCallback);
       contactSensorSecondFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/second_foot", 10, contactSecondFootCallback);
       contactSensorThirdFootSubscription_ = node->create_subscription<gazebo_msgs::msg::ContactsState>("/contact_sensors/third_foot", 10, contactThirdFootCallback);
@@ -238,7 +252,7 @@ void StanceEstimatorROS::StanceEstimatorROS::delayContactDetection(int &id, size
     if (this->stance_delay_counter_[id] >= this->stance_delay_sec_ / this->timestep_dt_){
       state = 1;
       this->stance_delay_counter_[id] = 0;
-      RCLCPP_INFO(node_->get_logger(), "delay foot %d by %f seconds", id, this->stance_delay_sec_);
+      // RCLCPP_INFO(node_->get_logger(), "delay foot %d by %f seconds", id, this->stance_delay_sec_);
     } else {
       state = 0;
     }
@@ -285,8 +299,8 @@ void StanceEstimatorROS::StanceEstimatorROS::earlyContactDetectionP3d(int leg_id
   */
   
   // This function must not be used when running on hardware
-  if (!this->useSimulation_){
-    RCLCPP_WARN(node_->get_logger(), "'earlyContactDetection()' must not be used on hardware (useSimulation_: %d). state is not changed.", useSimulation_);
+  if (!this->use_sim_time_){
+    RCLCPP_WARN(node_->get_logger(), "'earlyContactDetection()' must not be used on hardware (use_sim_time_: %d). state is not changed.", use_sim_time_);
     return;
   }
 
@@ -311,7 +325,7 @@ void StanceEstimatorROS::StanceEstimatorROS::earlyContactDetectionP3d(int leg_id
   float change_in_z = (*vec)[0] - (*vec)[vec->size()-1];
 
   if ((*vec)[0] < this->p3dContactDetectionThresholdZ_ && change_in_z <= -1e-2){
-    // overwrite state to assume contact
+    // overwrite state to early contact
     state = 1;    
   }
   
