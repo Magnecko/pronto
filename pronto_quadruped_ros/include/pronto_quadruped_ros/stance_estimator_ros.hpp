@@ -45,9 +45,9 @@ public:
       }
     };
 
-    void delayContactDetection(int &id, size_t& state);
-    void earlyContactDetection(int &id, size_t& state);
-    void earlyContactDetectionP3d(int leg_id, size_t& state);
+    void delayContactDetection(const double &delay, std::vector<int>& counter, int &id, size_t& state, uint8_t last_state);
+    void earlyContactDetection(const double &leg_swing_time_shortened, std::vector<int>& counter, int &id, size_t& state, uint8_t last_state, std::vector<bool> &falling_edge);
+    void earlyContactDetectionP3d(double &threshold_z, size_t& state, int leg_id);
 
 private:
     std::shared_ptr<rclcpp::Node> node_;
@@ -72,20 +72,25 @@ private:
     // variables to delay timing of CE
     const double stance_delay_sec_ = 0.2;  // seconds
 
+    // TODO: get stace_topic_freq_ from param
+    // const double stance_topic_freq_ = 333;   // Hz. frequency of topic
     const int stance_delay_ = stance_delay_sec_ / timestep_dt_;   // number of samples to wait
     std::vector<int> stance_delay_counter_ = {0, 0, 0, 0}; 
 
-    // variables for early timing of CE
-    const double leg_swing_time_sec_ = 0.525;           // seconds
-    const double leg_swing_end_early_offset_sec_ = 0.2; // seconds
-    double p3dContactDetectionThresholdZ_ = 0.02;       // meters
-
+    // variables to advance timing of CE
     std::vector<float> p3dFirstFootZ_ {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; // newest measurement at index=0, lates measurement at index=9
     std::vector<float> p3dSecondFootZ_ {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     std::vector<float> p3dThirdFootZ_ {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     std::vector<float> p3dFourthFootZ_ {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    const int leg_swing_time_shortened_ = (leg_swing_time_sec_ - leg_swing_end_early_offset_sec_) / timestep_dt_;   // number of samples to wait
-    std::vector<bool> falling_edge_contact_ = {false, false, false, false};  
+    double p3dContactDetectionThresholdZ_ = 0.02;   // meters (mpc swing_heigt = 0.12m)
+
+    const double leg_swing_time_sec_ = 0.525;  // seconds
+    const double leg_swing_end_advance_sec_ = 0.2;  // seconds
+    const int leg_swing_time_shortened_ = (leg_swing_time_sec_ - leg_swing_end_advance_sec_) / timestep_dt_;   // number of samples to wait
+    std::vector<bool> falling_edge_contact_ = {false, false, false, false};
+
+
+    
  
     size_t legIdMap(const LegID& leg){
         // convert from Pronto to urdf convention
