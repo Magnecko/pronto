@@ -25,7 +25,6 @@
 
 #include <pronto_quadruped/StanceEstimator.hpp>
 #include "magnecko_msgs/msg/leg_state.hpp"
-#include "gazebo_msgs/msg/contacts_state.hpp"
 #include <rclcpp/rclcpp.hpp>
 
 namespace pronto {
@@ -39,11 +38,6 @@ private:
     std::shared_ptr<rclcpp::Node> node_;
     rclcpp::Subscription<magnecko_msgs::msg::LegState>::SharedPtr legStateSubscription_;
 
-    rclcpp::Subscription<gazebo_msgs::msg::ContactsState>::SharedPtr contactSensorFirstFootSubscription_;
-    rclcpp::Subscription<gazebo_msgs::msg::ContactsState>::SharedPtr contactSensorSecondFootSubscription_;
-    rclcpp::Subscription<gazebo_msgs::msg::ContactsState>::SharedPtr contactSensorThirdFootSubscription_;
-    rclcpp::Subscription<gazebo_msgs::msg::ContactsState>::SharedPtr contactSensorFourthFootSubscription_;
- 
     size_t legIdMap(const LegID& leg){
         switch (leg)
         {

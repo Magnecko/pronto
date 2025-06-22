@@ -216,10 +216,6 @@ bool StanceEstimator::getStance(LegBoolMap &stance,
             stance[leg_id] = magnetStates_[leg_id];
             stance_probability[leg_id] = stance[leg_id];
             break;
-        case Mode::GAZEBO:
-            stance[leg_id] = contactSensorStates_[leg_id];
-            stance_probability[leg_id] = stance[leg_id];
-            break;
         }
     }
     return true;
@@ -227,11 +223,6 @@ bool StanceEstimator::getStance(LegBoolMap &stance,
 
 void StanceEstimator::setMode(const Mode &mode) {
     mode_ = mode;
-}
-
-StanceEstimator::Mode StanceEstimator::getMode() {
-    StanceEstimator::Mode mode = mode_;
-    return mode;
 }
 
 void StanceEstimator::getNormalizedGRF(Eigen::Vector4d &normgrf) {
