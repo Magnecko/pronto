@@ -332,7 +332,6 @@ LegodoHandlerROS::Update* LegodoHandlerROS::processMessage(const sensor_msgs::ms
 
     stance_estimator_.getStance(stance_, stance_prob_);
 
-    // We use stance_estimator_ros_ to always publish ground truth contact independent of used stance mode in pronto
     stance_estimator_ros_.getStanceGroundTruth(stance_ground_truth_);
 
     stance_contact_msg_.lf = stance_ground_truth_[LegID::LF];
