@@ -98,7 +98,7 @@ LegodoHandlerBase::LegodoHandlerBase(const rclcpp::Node::SharedPtr& node,
 
     // Determine whether to publish debug topics
     debug_ = node->declare_parameter<bool>(prefix + "publish_debug_topics", true);
-    const std::vector<std::string> leg_names = {"lf", "rf", "lh", "rh"};
+    const std::vector<std::string> leg_names = {"lf", "lh", "rf", "rh"};
     if(debug_){
         for(int i=0; i<4; i++){
             vel_debug_.push_back(node->create_publisher<geometry_msgs::msg::TwistStamped>(leg_names[i] + "_veldebug",10));
